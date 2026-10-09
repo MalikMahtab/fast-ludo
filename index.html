@@ -106,7 +106,7 @@ function joinRoom(){let code=document.getElementById('joinInput').value.trim();i
 function setupConn(){conn.on('open',()=>{document.getElementById('onlineStatus').textContent='Connected ✅';document.getElementById('netText').textContent=isHost?'YOU: RED':'YOU: BLUE';setTimeout(()=>{document.getElementById('setup').style.display='none';},500);if(isHost){resetBoard();syncState();}});conn.on('data',d=>{if(d.react){showReactFloat(d.react);return;} gotis=d.gotis;turnIdx=d.turnIdx;curDice=d.curDice;finished=d.finished;pNames=d.pNames||pNames;if(d.turnOrder)turnOrder=d.turnOrder;if(d.canRoll!==undefined)canRoll=d.canRoll;if(d.canMove!==undefined)canMove=d.canMove;isAnimating=false;selIdx=null;if(!d.finished)document.getElementById('winModal').classList.remove('show');document.getElementById('lblR').textContent=pNames.red;let gE=document.getElementById('lblG');if(gE)gE.textContent=pNames.green;let yE=document.getElementById('lblY');if(yE)yE.textContent=pNames.yellow;document.getElementById('lblB').textContent=pNames.blue; if(curDice){document.getElementById('diceText').textContent='DICE: '+curDice; let cur=turnOrder[turnIdx]; let diceEl=(cur==='red'||cur==='green')?document.getElementById('diceR'):document.getElementById('diceB'); if(diceEl)diceEl.textContent=curDice; let md=document.getElementById('d-'+cur); if(md)md.textContent=curDice; let pd=document.getElementById('pair-'+cur); if(pd)pd.textContent=cur[0].toUpperCase()+': '+curDice; } else {document.getElementById('diceText').textContent='TAP TO ROLL';} if(d.winShow)showWin(d.winShow,true);drawBoard();updateUI();updateDiceUI();if(!finished)startTimer();});conn.on('close',()=>{document.getElementById('netText').textContent='Disconnected';});}
 function syncState(ex={}){if(!conn||!conn.open)return;conn.send({gotis,turnIdx,curDice,finished,pNames,turnOrder,canRoll,canMove,...ex});}
 function resetBoard(){for(let k in gotis)for(let g of gotis[k]){g.state='home';g.idx=-1;}turnIdx=0;finished=false;curDice=null;canRoll=true;canMove=false;selIdx=null;isAnimating=false;['red','blue','green','yellow'].forEach(col=>{let e=document.getElementById('d-'+col);if(e)e.textContent='-';let p=document.getElementById('pair-'+col);if(p)p.textContent=col[0].toUpperCase()+': -';});let dr=document.getElementById('diceR');if(dr)dr.textContent='🎲';let db=document.getElementById('diceB');if(db)db.textContent='🎲';}
-function resetGame(){document.getElementById('winModal').classList.remove('show');resetBoard();updateUI();updateDiceUI();drawBoard();startTimer();if(onlineMode)syncState();}
+function resetGame(){document.getElementById('winModal').classList.remove('show');resetBoard();document.getElementById('diceText').textContent='TAP TO ROLL';updateUI();updateDiceUI();drawBoard();startTimer();if(onlineMode)syncState();}
 function getMoveResult(g,dice){if(g.state==='win')return null;if(g.state==='home'){if(dice===6)return{idx:startIdx[g.color]};return null;}if(g.idx>=52){let need=57-g.idx;if(dice>need)return null;if(dice===need)return{idx:57,win:true};return{idx:g.idx+dice};}let cur=g.color,entry=entryIdx[cur],inFinal=false;if(cur==='red')inFinal=(g.idx>=46&&g.idx<=51);if(cur==='green')inFinal=(g.idx>=7&&g.idx<=12);if(cur==='blue')inFinal=(g.idx>=20&&g.idx<=25);if(cur==='yellow')inFinal=(g.idx>=33&&g.idx<=38);if(!inFinal)return{idx:(g.idx+dice)%52};let steps=entry-g.idx;if(dice<=steps)return{idx:g.idx+dice};let off=dice-steps-1;if(off>5)return null;if(off===5)return{idx:57,win:true};return{idx:52+off};}
 function canMovePiece(g,d){return getMoveResult(g,d)!==null;}
 function getCellPos(col,g){
@@ -158,13 +158,36 @@ for(let s of [{x:1,y:6,c:'red'},{x:2,y:8,c:'red'},{x:6,y:2,c:'green'},{x:8,y:1,c
 const homes={red:[[1,7],[2,7],[3,7],[4,7],[5,7]],green:[[7,1],[7,2],[7,3],[7,4],[7,5]],yellow:[[7,13],[7,12],[7,11],[7,10],[7,9]],blue:[[13,7],[12,7],[11,7],[10,7],[9,7]]};
 for(let k of Object.keys(homes)){for(let [x,y] of homes[k]){ctx.fillStyle=REAL[k];ctx.beginPath();ctx.roundRect(x*S+3,y*S+3,S-6,S-6,7);ctx.fill();ctx.fillStyle='rgba(255,255,255,.35)';ctx.fillRect(x*S+5,y*S+5,S-10,3);}}
 let posMap={};for(let col of turnOrder){for(let i=0;i<4;i++){let g=gotis[col][i],XY=getCellPos(col,g);let [X,Y]=XY;let key=X+','+Y;if(!posMap[key])posMap[key]=[];posMap[key].push({col,i,X,Y});}}
-for(let key in posMap){let stack=posMap[key];for(let s=0;s<stack.length;s++){let {col,i,X,Y}=stack[s];let bx=X*S+S/2,by=Y*S+S/2,ox=0,oy=0;if(stack.length===2)ox=(s===0?-10:10);else if(stack.length===3){ox=(s-1)*10;oy=(s===1?-8:8);}else if(stack.length>=4){let pts=[[-9,-9],[9,-9],[-9,9],[9,9]];ox=pts[s%4][0];oy=pts[s%4][1];}let cx2=bx+ox,cy2=by+oy;drawRealGoti(cx2,cy2,col,selIdx===i&&col===turnOrder[turnIdx]&&canMove);}}
+for(let key in posMap){let stack=posMap[key];for(let s=0;s<stack.length;s++){let {col,i,X,Y}=stack[s];let bx=X*S+S/2,by=Y*S+S/2,ox=0,oy=0;if(stack.length===2){ox=(s===0?-6:6);oy=0;}else if(stack.length===3){if(s===0){ox=-6;oy=-6;}else if(s===1){ox=6;oy=-6;}else{ox=0;oy=6;}}else if(stack.length>=4){let pts=[[-6,-6],[6,-6],[-6,6],[6,6]];ox=pts[s%4][0];oy=pts[s%4][1];}let cx2=bx+ox,cy2=by+oy;drawRealGoti(cx2,cy2,col,selIdx===i&&col===turnOrder[turnIdx]&&canMove);}}
 }
-c.addEventListener('click',e=>{if(!canMove||finished||isAnimating)return;if(onlineMode&&turnOrder[turnIdx]!==myColor)return;let r=c.getBoundingClientRect(),mx=(e.clientX-r.left)/r.width*15,my=(e.clientY-r.top)/r.height*15;let cur=turnOrder[turnIdx];for(let i=0;i<4;i++){let g=gotis[cur][i];let [X,Y]=getCellPos(cur,g);if(Math.hypot(mx-X-0.5,my-Y-0.5)<1.0){if(!canMovePiece(gotis[cur][i],curDice)){msg(gotis[cur][i].idx>=52?'Exact '+(57-gotis[cur][i].idx)+' chahiye 🎯':'6 pe niklegi');selIdx=null;drawBoard();return;}selIdx=i;drawBoard();moveSelected();break;}}});
-function startGame(n){let r=document.getElementById('nameRed').value.trim(),b=document.getElementById('nameBlue').value.trim();if(r)pNames.red=r.toUpperCase();if(b)pNames.blue=b.toUpperCase();document.getElementById('lblR').textContent=pNames.red;document.getElementById('lblB').textContent=pNames.blue;onlineMode=false;document.getElementById('setup').style.display='none';document.getElementById('winModal').classList.remove('show');if(n===2)turnOrder=['red','blue'];else turnOrder=['red','green','yellow','blue'];for(let col of ['red','green','yellow','blue']){let el=document.getElementById('p-'+col);if(turnOrder.includes(col))el.classList.remove('hidden');else el.classList.add('hidden');}
+c.addEventListener('click',e=>{
+ if(!canMove||finished||isAnimating)return;
+ if(onlineMode&&turnOrder[turnIdx]!==myColor)return;
+ let r=c.getBoundingClientRect(),mx=(e.clientX-r.left)/r.width*15,my=(e.clientY-r.top)/r.height*15;
+ let cur=turnOrder[turnIdx];
+ let clicked=[];
+ for(let i=0;i<4;i++){
+   let g=gotis[cur][i];
+   let [X,Y]=getCellPos(cur,g);
+   if(Math.hypot(mx-X-0.5,my-Y-0.5)<1.0) clicked.push(i);
+ }
+ if(clicked.length===0)return;
+ let movable=clicked.find(i=>canMovePiece(gotis[cur][i],curDice));
+ if(movable!==undefined){
+   selIdx=movable;
+   drawBoard();
+   moveSelected();
+ }else{
+   let g=gotis[cur][clicked[0]];
+   msg(g.idx>=52?'Exact '+(57-g.idx)+' chahiye 🎯':'6 pe niklegi');
+   selIdx=null;
+   drawBoard();
+ }
+});
+ function startGame(n){let r=document.getElementById('nameRed').value.trim(),b=document.getElementById('nameBlue').value.trim();if(r)pNames.red=r.toUpperCase();if(b)pNames.blue=b.toUpperCase();document.getElementById('lblR').textContent=pNames.red;document.getElementById('lblB').textContent=pNames.blue;onlineMode=false;document.getElementById('setup').style.display='none';document.getElementById('winModal').classList.remove('show');if(n===2)turnOrder=['red','blue'];else turnOrder=['red','green','yellow','blue'];for(let col of ['red','green','yellow','blue']){let el=document.getElementById('p-'+col);if(turnOrder.includes(col))el.classList.remove('hidden');else el.classList.add('hidden');}
  document.getElementById('pair-green').style.display=turnOrder.includes('green')?'':'none';
  document.getElementById('pair-yellow').style.display=turnOrder.includes('yellow')?'':'none';
- resetBoard();updateUI();updateDiceUI();drawBoard();startTimer();msg('Real Ludo Shuru! Smooth Version ✨');playSound('dice');}
+ resetBoard();document.getElementById('diceText').textContent='TAP TO ROLL';updateUI();updateDiceUI();drawBoard();startTimer();msg('Real Ludo Shuru! Smooth Version ✨');playSound('dice');}
 function updateUI(){for(let col of ['red','green','yellow','blue']){let e=document.getElementById('p-'+col);if(e)e.classList.remove('active');}let cur=turnOrder[turnIdx];let el=document.getElementById('p-'+cur);if(el)el.classList.add('active');document.getElementById('turnText').textContent='TURN: '+pNames[cur]+(onlineMode&&cur===myColor?' (YOU)':'');}
 function updateDiceUI(){
  let cur=turnOrder[turnIdx];
@@ -274,6 +297,9 @@ function afterMove(cur,res){
  if(curDice===6){
    msg('6! Ek aur chance 🎉');
    canRoll=true;canMove=false;curDice=null;selIdx=null;isAnimating=false;
+   let dr=document.getElementById('diceR');if(dr)dr.textContent='🎲';
+   let db=document.getElementById('diceB');if(db)db.textContent='🎲';
+   document.getElementById('diceText').textContent='TAP TO ROLL';
    updateUI();updateDiceUI();startTimer();
    if(onlineMode)syncState();
  }
