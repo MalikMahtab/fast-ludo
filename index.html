@@ -67,7 +67,7 @@ footer{margin-top:12px;width:94vw;max-width:480px;padding:12px;text-align:center
  <script>
 const c=document.getElementById('ludo'),ctx=c.getContext('2d'),S=30;
 const mainPath=[[1,6],[2,6],[3,6],[4,6],[5,6],[6,5],[6,4],[6,3],[6,2],[6,1],[6,0],[7,0],[8,0],[8,1],[8,2],[8,3],[8,4],[8,5],[9,6],[10,6],[11,6],[12,6],[13,6],[14,6],[14,7],[14,8],[13,8],[12,8],[11,8],[10,8],[9,8],[8,9],[8,10],[8,11],[8,12],[8,13],[8,14],[7,14],[6,14],[6,13],[6,12],[6,11],[6,10],[6,9],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8],[0,7],[0,6]];
-const startIdx={red:0,green:13,blue:26,yellow:39},entryIdx={red:50,green:11,blue:25,yellow:38};
+const startIdx={red:0,green:13,blue:26,yellow:39},entryIdx={red:50,green:11,blue:24,yellow:37};
 const REAL={red:'#FF2A2A',green:'#00C853',blue:'#2962FF',yellow:'#FFD600'};
 const REAL_DARK={red:'#9a0000',green:'#005a24',blue:'#002395',yellow:'#9c7a00'};
 const safeSpots=[{x:1,y:6},{x:2,y:8},{x:6,y:2},{x:8,y:1},{x:11,y:6},{x:13,y:8},{x:8,y:12},{x:6,y:13}];
@@ -107,7 +107,7 @@ function setupConn(){conn.on('open',()=>{document.getElementById('onlineStatus')
 function syncState(ex={}){if(!onlineMode||!conn||!conn.open)return;conn.send({gotis,turnIdx,curDice,finished,pNames,turnOrder,canRoll,canMove,...ex});}
 function resetBoard(){for(let k in gotis)for(let g of gotis[k]){g.state='home';g.idx=-1;}turnIdx=0;finished=false;curDice=null;canRoll=true;canMove=false;selIdx=null;isAnimating=false;['red','blue','green','yellow'].forEach(col=>{let e=document.getElementById('d-'+col);if(e)e.textContent='-';let p=document.getElementById('pair-'+col);if(p)p.textContent=col[0].toUpperCase()+': -';});let dr=document.getElementById('diceR');if(dr)dr.textContent='🎲';let db=document.getElementById('diceB');if(db)db.textContent='🎲';}
 function resetGame(){document.getElementById('winModal').classList.remove('show');resetBoard();document.getElementById('diceText').textContent='TAP TO ROLL';updateUI();updateDiceUI();drawBoard();startTimer();if(onlineMode)syncState();}
-function getMoveResult(g,dice){if(g.state==='win')return null;if(g.state==='home'){if(dice===6)return{idx:startIdx[g.color]};return null;}if(g.idx>=52){let need=57-g.idx;if(dice>need)return null;if(dice===need)return{idx:57,win:true};return{idx:g.idx+dice};}let cur=g.color,entry=entryIdx[cur],inFinal=false;if(cur==='red')inFinal=(g.idx>=45&&g.idx<=50);if(cur==='green')inFinal=(g.idx>=6&&g.idx<=11);if(cur==='blue')inFinal=(g.idx>=20&&g.idx<=25);if(cur==='yellow')inFinal=(g.idx>=33&&g.idx<=38);if(!inFinal)return{idx:(g.idx+dice)%52};let steps=entry-g.idx;if(dice<=steps)return{idx:g.idx+dice};let off=dice-steps-1;if(off>5)return null;if(off===5)return{idx:57,win:true};return{idx:52+off};}
+function getMoveResult(g,dice){if(g.state==='win')return null;if(g.state==='home'){if(dice===6)return{idx:startIdx[g.color]};return null;}if(g.idx>=52){let need=57-g.idx;if(dice>need)return null;if(dice===need)return{idx:57,win:true};return{idx:g.idx+dice};}let cur=g.color,entry=entryIdx[cur],inFinal=false;if(cur==='red')inFinal=(g.idx>=45&&g.idx<=50);if(cur==='green')inFinal=(g.idx>=6&&g.idx<=11);if(cur==='blue')inFinal=(g.idx>=19&&g.idx<=24);if(cur==='yellow')inFinal=(g.idx>=32&&g.idx<=37);if(!inFinal)return{idx:(g.idx+dice)%52};let steps=entry-g.idx;if(dice<=steps)return{idx:g.idx+dice};let off=dice-steps-1;if(off>5)return null;if(off===5)return{idx:57,win:true};return{idx:52+off};}
 function canMovePiece(g,d){return getMoveResult(g,d)!==null;}
 function getCellPos(col,g){
  if(g.state==='home')return homeSlots[col][g.homePos];
